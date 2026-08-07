@@ -27,6 +27,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_PI_WEB_FILE_EDITING: "1"
 
       - name: Publish to npm
         run: npm publish --access public
