@@ -75,19 +75,16 @@ html.dark .catppuccin-file-icon {
   }
 }
 
-/* Theme toggle: circular wipe via View Transitions API.
-   Disable the UA cross-fade; the actual clip-path animation is driven by
-   Element.animate() in hooks/useTheme.ts after transition.ready resolves. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-::view-transition-old(root) {
-  z-index: 1;
-}
-::view-transition-new(root) {
-  z-index: 2;
+/* 主题切换：短暂启用色彩过渡，避免整页 View Transitions 快照开销。
+   仅在切换瞬间由 useTheme 给 <html> 加 .theme-transition 类，
+   220ms 后移除，不影响其他元素的 width/transform/opacity 等过渡。 */
+html.theme-transition,
+html.theme-transition * {
+  transition: background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease,
+              fill 0.2s ease,
+              stroke 0.2s ease !important;
 }
 
 * {
