@@ -19,6 +19,8 @@ const fs = require("fs");
 const os = require("os");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { parseLaunchOptions } = require("./pi-web-options");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pkg = require("../package.json");
 
 const pkgDir = path.join(__dirname, "..");
 const nextDir = path.join(pkgDir, ".next");
@@ -51,10 +53,23 @@ if (options.help) {
   process.exit(0);
 }
 
+if (options.version) {
+  console.log(pkg.version);
+  process.exit(0);
+}
+
 // --- action flag dispatch (must exit before foreground startup) ---
 if (options.stop) {
   handleStop();
   process.exit(0);
+}
+if (options.restart) {
+  handleRestart();
+  return;
+}
+if (options.logs) {
+  handleLogs();
+  return;
 }
 if (options.status) {
   handleStatus();
@@ -236,6 +251,40 @@ function handleStop() {
   }
 
   try { fs.unlinkSync(PID_FILE); } catch {}
+}
+
+function handleRestart() {
+  handleStop();
+  handleDetach();
+}
+
+function handleLogs() {
+  if (!fs.existsSync(LOG_FILE)) {
+    console.error(`No log file found at ${LOG_FILE}.`);
+    console.error("Start pi-web in background first: pi-web --detach");
+    process.exit(1);
+  }
+
+  const isWindows = process.platform === "win32";
+  let tail;
+  if (isWindows) {
+    tail = spawn("powershell", ["-NoProfile", "-Command", `Get-Content -Wait -Tail 100 '${LOG_FILE}'`], {
+      stdio: "inherit",
+    });
+  } else {
+    tail = spawn("tail", ["-n", "100", "-f", LOG_FILE], {
+      stdio: "inherit",
+    });
+  }
+
+  const stop = (signal) => {
+    try { tail.kill(signal); } catch {}
+    setTimeout(() => process.exit(0), 200);
+  };
+  process.on("SIGINT", () => stop("SIGINT"));
+  process.on("SIGTERM", () => stop("SIGTERM"));
+
+  tail.on("exit", (code) => process.exit(code ?? 0));
 }
 
 function handleStatus() {
@@ -456,10 +505,13 @@ Options:
       --no-open             do not open the browser automatically
       --detach              run in background (PID + log at ~/.pi-web/)
       --stop                stop the background instance
+      --restart             restart the background instance
       --status              show running state, port usage, auto-start status
+      --logs                tail background logs (Ctrl-C to exit)
       --install             macOS: install launchd auto-start (login + crash restart)
       --uninstall           macOS: remove launchd auto-start
       --pm2                 run via pm2 (requires: npm i -g pm2)
+  -v, --version             print version and exit
   -h, --help                show this help message
 
 Environment variables:
@@ -476,8 +528,11 @@ Examples:
   pi-web                    start in foreground
   pi-web -p 8080 -H 0.0.0.0 custom port and bind address
   pi-web --detach           run in background
+  pi-web --restart          restart the background instance
+  pi-web --logs             follow background logs
   pi-web --install          install auto-start on login (macOS)
   pi-web --status           check if running
+  pi-web --version          print version
 
 Documentation: https://github.com/AxelWT/pi-web#readme`);
 }
