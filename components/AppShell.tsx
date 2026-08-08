@@ -932,11 +932,8 @@ export function AppShell() {
             )}
           </button>
           <button
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              toggleTheme({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-            }}
-             title={isDark ? translate("theme.light") : translate("theme.dark")}
+            onClick={() => toggleTheme()}
+            title={isDark ? translate("theme.light") : translate("theme.dark")}
              aria-label={isDark ? translate("theme.light") : translate("theme.dark")}
             aria-pressed={isDark}
             style={{
