@@ -28,14 +28,8 @@ import {
 } from "@/lib/file-upload";
 import { parseFormDataWithinLimit, RequestBodyTooLargeError } from "@/lib/bounded-form-data";
 import { samePath } from "@/lib/paths";
-
-const IGNORED_NAMES = new Set([
-  "node_modules", ".git", ".next", "dist", "build", "__pycache__",
-  ".turbo", ".cache", "coverage", ".pytest_cache", ".mypy_cache",
-  "target", "vendor", ".DS_Store", ".git",
-]);
-
-const IGNORED_SUFFIXES = [".pyc"];
+import { listIgnoredImmediateNames } from "@/lib/git-ignore";
+import { selectVisibleTreeNames } from "@/lib/file-tree-listing";
 
 const FILE_REQUEST_TYPES = ["list", "read", "download", "meta", "preview", "watch"] as const;
 type FileRequestType = typeof FILE_REQUEST_TYPES[number];
@@ -616,11 +610,17 @@ export async function GET(
       return NextResponse.json({ error: "Not a directory" }, { status: 400 });
     }
 
-    // Avoid per-entry stat calls for normal files and directories. Symlinks and
-    // filesystems without directory type information use the stat fallback.
+    // Match the pi TUI's `fd` behavior: inside a git repository, honor
+    // .gitignore so committed directories like Go's `vendor/` stay visible
+    // while gitignored `node_modules/`/`.env` are hidden. Outside git (or when
+    // git is unavailable) fall back to a static well-known-outputs list.
     const dirents = fs.readdirSync(filePath, { withFileTypes: true });
+    const ignoredImmediateNames = await listIgnoredImmediateNames(filePath);
+    const visibleNames = new Set(
+      selectVisibleTreeNames(dirents.map((d) => d.name), ignoredImmediateNames),
+    );
     const entries = dirents
-      .filter((d) => !IGNORED_NAMES.has(d.name) && !IGNORED_SUFFIXES.some((s) => d.name.endsWith(s)))
+      .filter((d) => visibleNames.has(d.name))
       .flatMap((d) => {
         const isDir = resolveDirentIsDirectory(d, path.join(filePath, d.name));
         return isDir === null
