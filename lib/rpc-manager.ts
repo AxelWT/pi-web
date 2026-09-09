@@ -90,11 +90,30 @@ export interface RpcSessionStartOptions {
 const CODING_TOOL_NAMES = ["read", "bash", "edit", "write", "grep", "find", "ls"];
 
 // Extensions require a complete Theme, while the web UI applies its own styling.
+// Every color method is overridden below to pass text through unstyled; the color
+// values here only need to satisfy the Theme constructor ("" = no color). They
+// must stay explicit: missing required keys silently break Theme's optional-color
+// fallbacks at runtime (undefined.startsWith crash).
 class PlainTextTheme extends Theme {
   constructor() {
     super(
-      { thinkingXhigh: "" } as ConstructorParameters<typeof Theme>[0],
-      { selectedBg: "" } as ConstructorParameters<typeof Theme>[1],
+      {
+        accent: "", border: "", borderAccent: "", borderMuted: "",
+        success: "", error: "", warning: "", muted: "", dim: "", text: "",
+        thinkingText: "", userMessageText: "", customMessageText: "", customMessageLabel: "",
+        toolTitle: "", toolOutput: "",
+        mdHeading: "", mdLink: "", mdLinkUrl: "", mdCode: "", mdCodeBlock: "",
+        mdCodeBlockBorder: "", mdQuote: "", mdQuoteBorder: "", mdHr: "", mdListBullet: "",
+        toolDiffAdded: "", toolDiffRemoved: "", toolDiffContext: "",
+        syntaxComment: "", syntaxKeyword: "", syntaxFunction: "", syntaxVariable: "",
+        syntaxString: "", syntaxNumber: "", syntaxType: "", syntaxOperator: "", syntaxPunctuation: "",
+        thinkingOff: "", thinkingMinimal: "", thinkingLow: "", thinkingMedium: "",
+        thinkingHigh: "", thinkingXhigh: "", bashMode: "",
+      },
+      {
+        selectedBg: "", userMessageBg: "", customMessageBg: "",
+        toolPendingBg: "", toolSuccessBg: "", toolErrorBg: "",
+      },
       "truecolor",
     );
   }
